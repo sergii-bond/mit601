@@ -1,5 +1,5 @@
 import pdb
-import lib601.sm as sm
+#import lib601.sm as sm
 import string
 import operator
 
@@ -46,10 +46,59 @@ class Variable:
 # characters that are single-character tokens
 seps = ['(', ')', '+', '-', '*', '/', '=']
 
+class StateMachine():
+    def __init__(self):
+        pass
+
+    def getNextValue(self, state, inp):
+        pass
+
+    def step(self, inp):
+        (self.state, out) = self.getNextValue(self.state, inp)
+        return out
+
+    def transduce(self, str):
+        return [self.step(inp) for inp in str]
+
+
+class Tokenizer(StateMachine):
+    def __init__(self, seps):
+        self.state = [1, '']
+        self.seps = seps
+
+    def isSeparator(self, seps, char):
+        for x in seps:
+            if char == x:
+                return True
+        return False
+
+    def getNextValue(self, state, inp):
+        acc = state[1]
+
+        if self.isSeparator(self.seps, inp):
+            next = 2
+            if not acc == '':
+                out = [acc, inp]
+            else:
+                out = [inp]
+            acc = ''
+        else:
+            out = []
+            next = 1
+            acc += str(inp)
+
+        return ([next, acc], out)
+
 # Convert strings into a list of tokens (strings)
 def tokenize(string):
     # <your code here>
-    pass
+    t = Tokenizer(seps)
+    a = []
+    for y in t.transduce(string):
+        a = a + y
+    return a
+
+
 
 # tokens is a list of tokens
 # returns a syntax tree:  an instance of {\tt Number}, {\tt Variable},
