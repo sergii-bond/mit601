@@ -1,7 +1,8 @@
-import pdb
-#import lib601.sm as sm
+# import pdb
+# import lib601.sm as sm
 import string
 import operator
+
 
 class BinaryOp:
     def __init__(self, left, right):
@@ -10,41 +11,69 @@ class BinaryOp:
 
     def __str__(self):
         return self.opStr + '(' + \
-               str(self.left) + ', ' +\
-               str(self.right) + ')'
+            str(self.left) + ', ' +\
+            str(self.right) + ')'
     __repr__ = __str__
+
+    def eval(self, env):
+        return self.op(self.left.eval(env), self.right.eval(env))
+
 
 class Sum(BinaryOp):
     opStr = 'Sum'
+    op = operator.add
+
 
 class Prod(BinaryOp):
     opStr = 'Prod'
+    op = operator.mul
+
 
 class Quot(BinaryOp):
     opStr = 'Quot'
+    op = operator.div
+
 
 class Diff(BinaryOp):
     opStr = 'Diff'
+    op = operator.sub
+
 
 class Assign(BinaryOp):
     opStr = 'Assign'
-        
+
+    def eval(self, env):
+        env[self.left.name] = self.right.eval(env)
+        return True
+
+
 class Number:
     def __init__(self, val):
         self.value = val
+
     def __str__(self):
         return 'Num('+str(self.value)+')'
     __repr__ = __str__
 
+    def eval(self, env):
+        return self.value
+
+
 class Variable:
     def __init__(self, name):
         self.name = name
+
     def __str__(self):
         return 'Var('+self.name+')'
     __repr__ = __str__
 
+    def eval(self, env):
+        return env[self.name]
+
+
 # characters that are single-character tokens
 seps = ['(', ')', '+', '-', '*', '/', '=']
+
 
 class StateMachine():
     def __init__(self):
@@ -82,68 +111,108 @@ class Tokenizer(StateMachine):
             else:
                 out = [inp]
             acc = ''
+        elif state[0] == 1 and inp == '\n':
+            out = [acc]
+            next = 3
         else:
             out = []
             next = 1
-            acc += str(inp)
+            if not inp == ' ':
+                acc += str(inp)
 
         return ([next, acc], out)
+
 
 # Convert strings into a list of tokens (strings)
 def tokenize(string):
     # <your code here>
     t = Tokenizer(seps)
     a = []
-    for y in t.transduce(string):
+    for y in t.transduce(string + '\n'):
         a = a + y
     return a
 
 
-
 # tokens is a list of tokens
 # returns a syntax tree:  an instance of {\tt Number}, {\tt Variable},
-# or one of the subclasses of {\tt BinaryOp} 
+# or one of the subclasses of {\tt BinaryOp}
 def parse(tokens):
     def parseExp(index):
         # <your code here>
-        pass
+        t = tokens[index]
+        ni = index + 1
+
+        if numberTok(t):
+            p = Number(float(t))
+        elif variableTok(t):
+            p = Variable(t)
+        else:
+            # then the token is
+            (left, ni) = parseExp(ni)
+            op_tok = tokens[ni]
+            ni += 1
+            (right, ni) = parseExp(ni)
+            # account for ')'
+            ni += 1
+
+            # seps = ['(', ')', '+', '-', '*', '/', '=']
+            if op_tok == '+':
+                p = Sum(left, right)
+            elif op_tok == '-':
+                p = Diff(left, right)
+            elif op_tok == '/':
+                p = Quot(left, right)
+            elif op_tok == '*':
+                p = Prod(left, right)
+            elif op_tok == '=':
+                p = Assign(left, right)
+
+        return (p, ni)
+
     (parsedExp, nextIndex) = parseExp(0)
     return parsedExp
+
 
 # token is a string
 # returns True if contains only digits
 def numberTok(token):
     for char in token:
-        if not char in string.digits: return False
+        if char not in string.digits:
+            return False
     return True
+
 
 # token is a string
 # returns True its first character is a letter
 def variableTok(token):
     for char in token:
-        if char in string.letters: return True
+        if char in string.letters:
+            return True
     return False
+
 
 # thing is any Python entity
 # returns True if it is a number
 def isNum(thing):
     return type(thing) == int or type(thing) == float
 
+
 # Run calculator interactively
 def calc():
     env = {}
     while True:
-        e = raw_input('%')            # prints %, returns user input
-        print '%', # your expression here
+        inp = raw_input('%')            # prints %, returns user input
+        print '%', parse(tokenize(inp)).eval(env)
         print '   env =', env
+
 
 # exprs is a list of strings
 # runs calculator on those strings, in sequence, using the same environment
 def calcTest(exprs):
     env = {}
     for e in exprs:
-        print '%', e                    # e is the experession 
-        print # your expression here
+        print '%', e                    # e is the experession
+        print parse(tokenize(e)).eval(env)
         print '   env =', env
 
 # Simple tokenizer tests
@@ -157,6 +226,8 @@ def calcTest(exprs):
 ['(', 'hi', '*', 'ho', ')']
 ['(', 'fred', '+', 'george', ')']
 '''
+
+
 def testTokenize():
     print tokenize('fred ')
     print tokenize('777 ')
@@ -177,17 +248,21 @@ Quot(Prod(Var(a), Var(b)), Diff(Var(cee), Var(doh)))
 Quot(Prod(Var(a), Var(b)), Diff(Var(cee), Var(doh)))
 Assign(Var(a), Prod(Num(3.0), Num(5.0)))
 '''
+
+
 def testParse():
     print parse(['a'])
     print parse(['888'])
     print parse(['(', 'fred', '+', 'george', ')'])
-    print parse(['(', '(', 'a', '*', 'b', ')', '/', '(', 'cee', '-', 'doh', ')' ,')'])
+    print parse(['(', '(', 'a', '*', 'b', ')', '/', '(',
+                'cee', '-', 'doh', ')', ')'])
     print parse(tokenize('((a * b) / (cee - doh))'))
     print parse(tokenize('(a = (3 * 5))'))
 
 ####################################################################
 # Test cases for EAGER evaluator
 ####################################################################
+
 
 def testEval():
     env = {}
@@ -222,6 +297,8 @@ Sum(Var(b), Var(c))
 Sum(2.0, Var(c))
 6.0
 '''
+
+
 def testLazyEval():
     env = {}
     Assign(Variable('a'), Sum(Variable('b'), Variable('c'))).eval(env)
@@ -233,18 +310,18 @@ def testLazyEval():
 
 # Lazy partial eval test cases (see handout)
 lazyTestExprs = ['(a = (b + c))',
-                  '(b = ((d * e) / 2))',
-                  'a',
-                  '(d = 6)',
-                  '(e = 5)',
-                  'a',
-                  '(c = 9)',
-                  'a',
-                  '(d = 2)',
-                  'a']
+                 '(b = ((d * e) / 2))',
+                 'a',
+                 '(d = 6)',
+                 '(e = 5)',
+                 'a',
+                 '(c = 9)',
+                 'a',
+                 '(d = 2)',
+                 'a']
 # calcTest(lazyTestExprs)
 
-## More test cases (see handout)
+# More test cases (see handout)
 partialTestExprs = ['(z = (y + w))',
                     'z',
                     '(y = 2)',
