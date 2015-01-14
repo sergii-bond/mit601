@@ -1,7 +1,7 @@
 
 import lib601.sm as sm
 # import lib601.util as util
-# import operator
+import operator
 
 
 class Delay(sm.SM):
@@ -124,3 +124,57 @@ p = MaxAccount()
 print p.transduce([100, 10, -10, 5, -5])
 c = SwitchAccount()
 print c.transduce([(3001, 0), (0, 10), (-4000, 0), (0, 50), (0, -5)])
+
+
+class SumTSM(sm.SM):
+    def __init__(self):
+        self.startState = [0, 0]
+
+    def done(self, state):
+        return state[0] == 1
+
+    def getNextValues(self, state, inp):
+        if state[0] == 0:
+            next_out = state[1] + inp
+            if next_out > 100:
+                out = inp
+                next_state = 1
+            else:
+                out = next_out
+                next_state = 0
+        else:
+            next_state = 1
+            out = state[1]
+
+        return ([next_state, out], out)
+
+
+s = SumTSM()
+print s.transduce([1, 2, 3, 8, 10, 50, 30, 35, 12, 15, 19, 34])
+
+
+class CountUpTo(sm.SM):
+    def __init__(self, v_stop):
+        self.startState = 0
+        self.stop_val = v_stop
+
+    def done(self, state):
+        return state == self.stop_val
+
+    def getNextValues(self, state, inp):
+        out = state + 1
+        return (out, out)
+
+c = CountUpTo(30)
+print c.run(n=20)
+
+
+def makeSequenceCounter(nums):
+    return [CountUpTo(x).run() for x in nums]
+
+print makeSequenceCounter([2, 3, 5])
+
+negate = PureFunction(operator.not_)
+c = sm.Feedback(sm.Cascade(negate, Delay(True)))
+
+print c.run(n=10)
