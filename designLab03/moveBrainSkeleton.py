@@ -28,9 +28,18 @@ verbose = False
 squarePoints = [util.Point(0.5, 0.5), util.Point(0.0, 1.0),
                 util.Point(-0.5, 0.5), util.Point(0.0, 0.0)]
 
+
+def cond(inp):
+    sensors = inp[1]
+    for s in sensors.sonars:
+        if s < 0.3:
+            return False
+    return True
+
 # Put your answer to step 1 here
 mySM = sm.Cascade(sm.Parallel(ffSkeleton.FollowFigure(squarePoints), sm.Wire()),
-                    dynamicMoveToPointSkeleton.DynamicMoveToPoint())
+                    sm.Switch(cond, dynamicMoveToPointSkeleton.DynamicMoveToPoint(),
+										sm.Constant(io.Action())))
 
 ######################################################################
 ###
