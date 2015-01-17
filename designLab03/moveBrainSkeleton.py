@@ -20,6 +20,8 @@ import ffSkeleton
 reload(ffSkeleton)
 
 from secretMessage import secret
+#import secretMessage 
+#reload(secretMessage)
 
 # Set to True for verbose output on every step
 verbose = False
@@ -37,7 +39,7 @@ def cond(inp):
     return True
 
 # Put your answer to step 1 here
-mySM = sm.Cascade(sm.Parallel(ffSkeleton.FollowFigure(squarePoints), sm.Wire()),
+mySM = sm.Cascade(sm.Parallel(ffSkeleton.FollowFigure(secret), sm.Wire()),
                     sm.Switch(cond, dynamicMoveToPointSkeleton.DynamicMoveToPoint(),
 										sm.Constant(io.Action())))
 
